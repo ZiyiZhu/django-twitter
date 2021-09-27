@@ -1,14 +1,18 @@
 from accounts.models import UserProfile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
+
 
 LOGIN_URL = '/api/accounts/login/'
 LOGOUT_URL = '/api/accounts/logout/'
 SIGNUP_URL = '/api/accounts/signup/'
 LOGIN_STATUS_URL = '/api/accounts/login_status/'
+USER_PROFILE_DETAIL_URL = '/api/profiles/{}/'
 
 
 class AccountApiTests(TestCase):
+
     def setUp(self):
         # 这个函数会在每个 test function 执行的时候被执行
         self.client = APIClient()
@@ -17,11 +21,6 @@ class AccountApiTests(TestCase):
             email='admin@jiuzhang.com',
             password='correct password',
         )
-
-#    def createUser(self, username, email, password):
-#        # 不能写成 User.objects.create()
-#        # 因为 password 需要被加密, username 和 email 需要进⾏⼀些 normalize 处理
-#        return User.objects.create_user(username, email, password)
 
     def test_login(self):
         # 每个测试函数必须以 test_ 开头，才会被⾃动调⽤进⾏测试
@@ -32,13 +31,14 @@ class AccountApiTests(TestCase):
         })
         # 登陆失败，http status code 返回 405 = METHOD_NOT_ALLOWED
         self.assertEqual(response.status_code, 405)
+
         # ⽤了 post 但是密码错了
         response = self.client.post(LOGIN_URL, {
             'username': self.user.username,
             'password': 'wrong password',
         })
-
         self.assertEqual(response.status_code, 400)
+
         # 验证还没有登录
         response = self.client.get(LOGIN_STATUS_URL)
         self.assertEqual(response.data['has_logged_in'], False)
@@ -49,13 +49,12 @@ class AccountApiTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.data['user'], None)
-        self.assertEqual(response.data['user']['email'], 'admin@jiuzhang.com')
+        self.assertEqual(response.data['user']['id'], self.user.id)
         # 验证已经登录了
         response = self.client.get(LOGIN_STATUS_URL)
         self.assertEqual(response.data['has_logged_in'], True)
 
     def test_logout(self):
-
         # 先登录
         self.client.post(LOGIN_URL, {
             'username': self.user.username,
@@ -64,9 +63,11 @@ class AccountApiTests(TestCase):
         # 验证⽤户已经登录
         response = self.client.get(LOGIN_STATUS_URL)
         self.assertEqual(response.data['has_logged_in'], True)
+
         # 测试必须⽤ post
         response = self.client.get(LOGOUT_URL)
         self.assertEqual(response.status_code, 405)
+
         # 改⽤ post 成功 logout
         response = self.client.post(LOGOUT_URL)
         self.assertEqual(response.status_code, 200)
@@ -80,10 +81,10 @@ class AccountApiTests(TestCase):
             'email': 'someone@jiuzhang.com',
             'password': 'any password',
         }
-
         # 测试 get 请求失败
         response = self.client.get(SIGNUP_URL, data)
         self.assertEqual(response.status_code, 405)
+
         # 测试错误的邮箱
         response = self.client.post(SIGNUP_URL, {
             'username': 'someone',
@@ -92,6 +93,7 @@ class AccountApiTests(TestCase):
         })
         # print(response.data)
         self.assertEqual(response.status_code, 400)
+
         # 测试密码太短
         response = self.client.post(SIGNUP_URL, {
             'username': 'someone',
@@ -121,3 +123,43 @@ class AccountApiTests(TestCase):
         # 验证⽤户已经登⼊
         response = self.client.get(LOGIN_STATUS_URL)
         self.assertEqual(response.data['has_logged_in'], True)
+
+
+class UserProfileAPITests(TestCase):
+
+    def test_update(self):
+        linghu, linghu_client = self.create_user_and_client('linghu')
+        p = linghu.profile
+        p.nickname = 'old nickname'
+        p.save()
+        url = USER_PROFILE_DETAIL_URL.format(p.id)
+
+        # test can only be updated by user himself.
+        _, dongxie_client = self.create_user_and_client('dongxie')
+        response = dongxie_client.put(url, {
+            'nickname': 'a new nickname',
+        })
+        self.assertEqual(response.status_code, 403)
+        p.refresh_from_db()
+        self.assertEqual(p.nickname, 'old nickname')
+
+        # update nickname
+        response = linghu_client.put(url, {
+            'nickname': 'a new nickname',
+        })
+        self.assertEqual(response.status_code, 200)
+        p.refresh_from_db()
+        self.assertEqual(p.nickname, 'a new nickname')
+
+        # update avatar
+        response = linghu_client.put(url, {
+            'avatar': SimpleUploadedFile(
+                name='my-avatar.jpg',
+                content=str.encode('a fake image'),
+                content_type='image/jpeg',
+            ),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('my-avatar' in response.data['avatar'], True)
+        p.refresh_from_db()
+        self.assertIsNotNone(p.avatar)
