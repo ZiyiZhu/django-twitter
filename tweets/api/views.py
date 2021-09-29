@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from tweets.api.serializers import (
     TweetSerializer,
-    TweetCreateSerializer,
+    TweetSerializerForCreate,
     TweetSerializerForDetail,
 )
 from tweets.models import Tweet
@@ -19,7 +19,7 @@ class TweetViewSet(viewsets.GenericViewSet,
     API endpoint that allows users to create, list tweets
     """
     queryset = Tweet.objects.all()
-    serializer_class = TweetCreateSerializer
+    serializer_class = TweetSerializerForCreate
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -59,7 +59,7 @@ class TweetViewSet(viewsets.GenericViewSet,
         """
         重载 create 方法，因为需要默认用当前登录用户作为 tweet.user
         """
-        serializer = TweetCreateSerializer(
+        serializer = TweetSerializerForCreate(
             data=request.data,
             context={'request': request},
         )
