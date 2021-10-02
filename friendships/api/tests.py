@@ -1,4 +1,4 @@
-from friendships.api.paginations import FriendshipPagination
+from utils.paginations import FriendshipPagination
 from friendships.models import Friendship
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
