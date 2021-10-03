@@ -166,7 +166,6 @@ AWS_S3_REGION_NAME = 'us-east-1'
 # AWS_ACCESS_KEY_ID = 'YOUR_ACCESS_KEY_ID'
 # AWS_SECRET_ACCESS_KEY = 'YOUR_SECRET_ACCESS_KEY'
 
-
 # media 的作用适用于存放被用户上传的文件信息
 # 当我们使用默认 FileSystemStorage 作为 DEFAULT_FILE_STORAGE 的时候
 # 文件会被默认上传到 MEDIA_ROOT 指定的目录下
@@ -174,6 +173,23 @@ AWS_S3_REGION_NAME = 'us-east-1'
 # - static 里通常是 css,js 文件之类的静态代码文件，是用户可以直接访问的代码文件
 # - media 里使用户上传的数据文件，而不是代码
 MEDIA_ROOT = 'media/'
+
+# https://docs.djangoproject.com/en/3.1/topics/cache/
+# use `pip install python-memcached`
+# DO NOT pip install memcache or django-memcached
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 86400,
+    },
+    'testing': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 86400,
+        'KEY_PREFIX': 'testing',
+    },
+}
 
 try:
     from .local_settings import *
