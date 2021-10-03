@@ -17,9 +17,11 @@ class NewsFeedApiTests(TestCase):
         self.linghu = self.create_user('linghu')
         self.linghu_client = APIClient()
         self.linghu_client.force_authenticate(self.linghu)
+
         self.dongxie = self.create_user('dongxie')
         self.dongxie_client = APIClient()
         self.dongxie_client.force_authenticate(self.dongxie)
+
         # create followings and followers for dongxie
         for i in range(2):
             follower = self.create_user('dongxie_follower{}'.format(i))
@@ -134,3 +136,25 @@ class NewsFeedApiTests(TestCase):
         self.assertEqual(results[0]['tweet']['user']['username'], 'dongxie')
         self.assertEqual(results[0]['tweet']['user']['nickname'], 'huangyaoshi')
         self.assertEqual(results[1]['tweet']['user']['username'], 'linghuchong')
+
+    def test_tweet_cache(self):
+        tweet = self.create_tweet(self.linghu, 'content1')
+        self.create_newsfeed(self.dongxie, tweet)
+        response = self.dongxie_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['user']['username'], 'linghu')
+        self.assertEqual(results[0]['tweet']['content'], 'content1')
+
+        # update username
+        self.linghu.username = 'linghuchong'
+        self.linghu.save()
+        response = self.dongxie_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['user']['username'], 'linghuchong')
+
+        # update content
+        tweet.content = 'content2'
+        tweet.save()
+        response = self.dongxie_client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        self.assertEqual(results[0]['tweet']['content'], 'content2')
