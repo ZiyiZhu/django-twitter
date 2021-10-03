@@ -2,7 +2,7 @@ from accounts.services import UserService
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from likes.models import Like
 from tweets.constants import TweetPhotoStatus, TWEET_PHOTO_STATUS_CHOICES
 from utils.listeners import invalidate_object_cache
@@ -78,6 +78,7 @@ class TweetPhoto(models.Model):
     def __str__(self):
         return f'{self.tweet_id}: {self.file}'
 
-    post_save.connect(invalidate_object_cache, sender=Tweet)
+post_save.connect(invalidate_object_cache, sender=Tweet)
+pre_delete.connect(invalidate_object_cache, sender=Tweet)
 
 
