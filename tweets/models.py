@@ -80,5 +80,3 @@ class TweetPhoto(models.Model):
 
 post_save.connect(invalidate_object_cache, sender=Tweet)
 pre_delete.connect(invalidate_object_cache, sender=Tweet)
-
-
