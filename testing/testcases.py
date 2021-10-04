@@ -3,15 +3,16 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import caches
 from django.test import TestCase as DjangoTestCase
-from inbox.services import NotificationService
 from likes.models import Like
 from newsfeeds.models import NewsFeed
 from rest_framework.test import APIClient
 from tweets.models import Tweet
+from utils.redis_client import RedisClient
 
 class TestCase(DjangoTestCase):
 
     def clear_cache(self):
+        RedisClient.clear()
         caches['testing'].clear()
 
     @property
