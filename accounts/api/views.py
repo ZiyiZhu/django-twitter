@@ -6,17 +6,19 @@ from accounts.api.serializers import (
     UserSerializerWithProfile,
 )
 from accounts.models import UserProfile
-from django.contrib.auth.models import User
-from rest_framework import permissions
-from rest_framework import viewsets
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
 from django.contrib.auth import (
     authenticate as django_authenticate,
     login as django_login,
     logout as django_logout,
 )
+from django.contrib.auth.models import User
+from django.utils.decorators import method_decorator
+from ratelimit.decorators import ratelimit
+from rest_framework import permissions
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from utils.permissions import IsObjectOwner
 
 
@@ -34,6 +36,7 @@ class AccountViewSet(viewsets.ViewSet):
     serializer_class = SignupSerializer
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def signup(self, request):
         """
         使⽤ username, email, password 进⾏注册
@@ -66,6 +69,7 @@ class AccountViewSet(viewsets.ViewSet):
         },status=201)
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def login(self, request):
         """
         默认的 username 是 admin, password 也是 admin
@@ -92,6 +96,7 @@ class AccountViewSet(viewsets.ViewSet):
         })
 
     @action(methods=['GET'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='GET', block=True))
     def login_status(self, request):
         """
         查看⽤户当前的登录状态和具体信息
@@ -104,6 +109,7 @@ class AccountViewSet(viewsets.ViewSet):
         return Response(data)
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def logout(self, request):
         """
         登出当前⽤户
